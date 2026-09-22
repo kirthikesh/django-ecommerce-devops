@@ -31,4 +31,16 @@
       <p class="muted">No products found.</p>
     {% endfor %}
   </div>
+
+  {% if page_obj.paginator.num_pages > 1 %}
+    <div class="filters" style="justify-content:center; margin-top:24px">
+      {% if page_obj.has_previous %}
+        <a class="btn" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.previous_page_number }}">&larr; Prev</a>
+      {% endif %}
+      <span class="muted">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+      {% if page_obj.has_next %}
+        <a class="btn" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.next_page_number }}">Next &rarr;</a>
+      {% endif %}
+    </div>
+  {% endif %}
 {% endblock %}

@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.core.paginator import Paginator
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 
@@ -35,12 +36,22 @@ def product_list(request):
 
     categories = Category.objects.all()
 
+    paginator = Paginator(products, 12)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    querystring = request.GET.copy()
+    querystring.pop("page", None)
+
     context = {
-        "products": products,
+        "products": page_obj,
+        "page_obj": page_obj,
+        "paginator": paginator,
         "categories": categories,
         "query": query,
         "selected_category": category_slug,
         "sort": sort,
+        "querystring": querystring.urlencode(),
     }
     return render(request, "products/product_list.html", context)
 

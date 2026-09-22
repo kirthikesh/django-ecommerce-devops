@@ -19,3 +19,19 @@ class CartTests(TestCase):
         self.client.get(reverse("cart:cart_remove", args=[self.product.id]))
         response = self.client.get(reverse("cart:cart_detail"))
         self.assertContains(response, "empty")
+
+
+class CartMergeOnLoginTests(TestCase):
+    def test_guest_cart_survives_login(self):
+        from django.contrib.auth import get_user_model
+
+        User = get_user_model()
+        User.objects.create_user(username="merger", password="pass12345")
+
+        product = Product.objects.create(name="Gadget", slug="gadget", price="15.00", stock=5)
+        self.client.post(reverse("cart:cart_add", args=[product.id]), {"quantity": 1})
+
+        self.client.post(reverse("accounts:login"), {"username": "merger", "password": "pass12345"})
+
+        response = self.client.get(reverse("cart:cart_detail"))
+        self.assertContains(response, "Gadget")

@@ -36,3 +36,16 @@ class ProductCatalogTests(TestCase):
         self.product.save()
         response = self.client.get(reverse("products:product_detail", args=["widget"]))
         self.assertContains(response, "Out of stock")
+
+
+class PaginationTests(TestCase):
+    def test_product_list_paginates_at_12(self):
+        for i in range(15):
+            Product.objects.create(name=f"Item {i}", slug=f"item-{i}", price="1.00", stock=1)
+        response = self.client.get(reverse("products:product_list"))
+        self.assertEqual(len(response.context["page_obj"]), 12)
+        self.assertTrue(response.context["page_obj"].has_next())
+
+        response_page2 = self.client.get(reverse("products:product_list"), {"page": 2})
+        self.assertEqual(response_page2.status_code, 200)
+        self.assertFalse(response_page2.context["page_obj"].has_next())

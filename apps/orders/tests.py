@@ -45,3 +45,51 @@ class CheckoutTests(TestCase):
         self.client.logout()
         response = self.client.get(reverse("orders:checkout"))
         self.assertEqual(response.status_code, 302)
+
+
+class StockTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="buyer2", password="pass12345")
+        self.product = Product.objects.create(name="Limited", slug="limited", price="10.00", stock=2)
+        self.client.force_login(self.user)
+
+    def test_stock_decrements_after_paid_order(self):
+        self.client.post(reverse("cart:cart_add", args=[self.product.id]), {"quantity": 2})
+        self.client.post(
+            reverse("orders:checkout"),
+            {
+                "full_name": "Test Buyer",
+                "shipping_address": "1 Test Street",
+                "card_number": "4242424242424242",
+            },
+        )
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 0)
+
+    def test_cannot_checkout_more_than_available_stock(self):
+        self.client.post(reverse("cart:cart_add", args=[self.product.id]), {"quantity": 5})
+        response = self.client.post(
+            reverse("orders:checkout"),
+            {
+                "full_name": "Test Buyer",
+                "shipping_address": "1 Test Street",
+                "card_number": "4242424242424242",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 2)
+        self.assertEqual(self.user.orders.count(), 0)
+
+    def test_failed_payment_does_not_decrement_stock(self):
+        self.client.post(reverse("cart:cart_add", args=[self.product.id]), {"quantity": 1})
+        self.client.post(
+            reverse("orders:checkout"),
+            {
+                "full_name": "Test Buyer",
+                "shipping_address": "1 Test Street",
+                "card_number": "4242424242420000",
+            },
+        )
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 2)

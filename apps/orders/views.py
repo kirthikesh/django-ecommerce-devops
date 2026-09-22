@@ -1,8 +1,10 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 
 from apps.cart.cart import Cart
+from apps.products.models import Product
 
 from .models import Order, OrderItem
 from .payments import MockPaymentGateway
@@ -22,14 +24,28 @@ def checkout(request):
 
         if not full_name or not shipping_address or not card_number:
             messages.error(request, "Please fill in all fields.")
-        else:
+            return render(request, "orders/checkout.html", {"cart": cart})
+
+        # Re-check stock at checkout time, not just when it was added to the cart -
+        # someone else may have bought the last one in the meantime.
+        cart_items = list(cart)
+        for item in cart_items:
+            product = Product.objects.get(pk=item["product"].pk)
+            if item["quantity"] > product.stock:
+                messages.error(
+                    request,
+                    f"Only {product.stock} of \"{product.name}\" left in stock - please update your cart.",
+                )
+                return redirect("cart:cart_detail")
+
+        with transaction.atomic():
             order = Order.objects.create(
                 user=request.user,
                 full_name=full_name,
                 shipping_address=shipping_address,
                 status=Order.Status.PENDING,
             )
-            for item in cart:
+            for item in cart_items:
                 OrderItem.objects.create(
                     order=order,
                     product=item["product"],
@@ -44,6 +60,11 @@ def checkout(request):
             if result.success:
                 order.status = Order.Status.PAID
                 order.save()
+                # Only decrement stock once payment has actually gone through.
+                for item in cart_items:
+                    Product.objects.filter(pk=item["product"].pk).update(
+                        stock=item["product"].stock - item["quantity"]
+                    )
                 cart.clear()
                 messages.success(request, result.message)
                 return redirect("orders:order_success", order_id=order.id)
