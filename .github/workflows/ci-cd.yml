@@ -78,27 +78,34 @@ jobs:
           cache-to: type=gha,mode=max
 
   deploy:
-    runs-on: ubuntu-latest
-    needs: build-and-push
-    if: github.event_name == 'workflow_dispatch'
-    environment: production
+    # Runs on your own Mac (registered as a self-hosted runner), because that's
+    # where the local `kind` cluster actually lives - GitHub-hosted runners have
+    # no network path to a cluster on your laptop. This builds the image locally
+    # and rolls it into the cluster the same way we did by hand.
+    runs-on: self-hosted
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
-      # Requires a KUBE_CONFIG repo secret pointing at a cluster the runner can reach
-      # (a self-hosted runner on your network, or a cloud cluster). A purely local
-      # kind/minikube cluster isn't reachable from GitHub-hosted runners, so this
-      # job is manual-trigger only — for local dev, deploy with:
-      #   kubectl apply -f k8s/
-      - name: Configure kubeconfig
-        run: |
-          mkdir -p "$HOME/.kube"
-          echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > "$HOME/.kube/config"
-      - name: Set image and apply manifests
+      - name: Build image
+        run: docker build -t django-ecommerce-devops:local .
+      - name: Load image into the local kind cluster
+        run: kind load docker-image django-ecommerce-devops:local --name ecommerce
+      - name: Apply manifests
         run: |
           kubectl apply -f k8s/namespace.yaml
           kubectl apply -f k8s/configmap.yaml
           kubectl apply -f k8s/postgres.yaml
           kubectl apply -f k8s/django.yaml
-          kubectl apply -f k8s/ingress.yaml
-          kubectl -n ecommerce set image deployment/django django=${{ env.IMAGE_NAME }}:${{ github.sha }}
-          kubectl -n ecommerce rollout status deployment/django
+      - name: Pin the deployment to the freshly-loaded local image
+        run: |
+          kubectl -n ecommerce patch deployment django --type=json -p='[
+            {"op":"replace","path":"/spec/template/spec/initContainers/0/image","value":"django-ecommerce-devops:local"},
+            {"op":"replace","path":"/spec/template/spec/initContainers/0/imagePullPolicy","value":"Never"},
+            {"op":"replace","path":"/spec/template/spec/containers/0/image","value":"django-ecommerce-devops:local"},
+            {"op":"replace","path":"/spec/template/spec/containers/0/imagePullPolicy","value":"Never"}
+          ]'
+      - name: Roll out and wait for health
+        run: |
+          kubectl -n ecommerce rollout restart deployment/django
+          kubectl -n ecommerce rollout status deployment/django --timeout=180s
