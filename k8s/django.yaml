@@ -11,6 +11,13 @@ spec:
     metadata:
       labels: {app: django}
     spec:
+      initContainers:
+        - name: migrate
+          image: ghcr.io/kirthikesh/django-ecommerce-devops:latest
+          command: ["python", "manage.py", "migrate", "--noinput"]
+          envFrom:
+            - configMapRef: {name: ecommerce-config}
+            - secretRef: {name: ecommerce-secret}
       containers:
         - name: django
           image: ghcr.io/kirthikesh/django-ecommerce-devops:latest
