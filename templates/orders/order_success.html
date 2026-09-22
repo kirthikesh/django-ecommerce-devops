@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}Order confirmed{% endblock %}
+{% block content %}
+  <h1>Payment approved ✅</h1>
+  <p>Order #{{ order.id }} — reference <code>{{ order.payment_reference }}</code></p>
+  <p><a class="btn" href="{% url 'orders:order_detail' order.id %}">View order</a></p>
+{% endblock %}

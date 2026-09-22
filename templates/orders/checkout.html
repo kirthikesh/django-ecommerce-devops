@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Checkout{% endblock %}
+{% block content %}
+  <h1>Checkout</h1>
+  <p class="muted">This uses a mock/test-mode payment gateway — no real card is charged. Any card number works; one ending in <code>0000</code> simulates a decline.</p>
+
+  <table style="margin-bottom:20px">
+    {% for item in cart %}
+      <tr><td>{{ item.quantity }} × {{ item.product.name }}</td><td>€{{ item.total_price }}</td></tr>
+    {% endfor %}
+    <tr><td><strong>Total</strong></td><td><strong>€{{ cart.get_total_price }}</strong></td></tr>
+  </table>
+
+  <form method="post" class="form-stack">
+    {% csrf_token %}
+    <label>Full name</label>
+    <input type="text" name="full_name" required>
+    <label>Shipping address</label>
+    <textarea name="shipping_address" rows="3" required></textarea>
+    <label>Card number (test mode)</label>
+    <input type="text" name="card_number" placeholder="4242 4242 4242 4242" required>
+    <button type="submit" style="margin-top:16px">Pay €{{ cart.get_total_price }}</button>
+  </form>
+{% endblock %}

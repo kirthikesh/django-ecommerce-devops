@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Order #{{ order.id }}{% endblock %}
+{% block content %}
+  <h1>Order #{{ order.id }}</h1>
+  <p class="muted">Status: {{ order.get_status_display }} · Reference: {{ order.payment_reference|default:"—" }}</p>
+  <p><strong>Ship to:</strong> {{ order.full_name }}<br>{{ order.shipping_address|linebreaksbr }}</p>
+  <table>
+    <thead><tr><th>Product</th><th>Price</th><th>Qty</th><th>Total</th></tr></thead>
+    <tbody>
+      {% for item in order.items.all %}
+        <tr><td>{{ item.product_name }}</td><td>€{{ item.price }}</td><td>{{ item.quantity }}</td><td>€{{ item.total_price }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="price" style="margin-top:12px">Total: €{{ order.total_price }}</p>
+{% endblock %}

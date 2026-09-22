@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}{{ product.name }}{% endblock %}
+{% block content %}
+  <a href="{% url 'products:product_list' %}" class="muted">&larr; Back to shop</a>
+  <h1>{{ product.name }}</h1>
+  <p class="muted">{{ product.category.name|default:"Uncategorized" }} · Average rating: {{ product.average_rating|floatformat:1 }}/5</p>
+  <p>{{ product.description }}</p>
+  <p class="price">€{{ product.price }}</p>
+
+  {% if product.in_stock %}
+    <form method="post" action="{% url 'cart:cart_add' product.id %}">
+      {% csrf_token %}
+      <input type="number" name="quantity" value="1" min="1" max="{{ product.stock }}" style="width:70px">
+      <button type="submit">Add to cart</button>
+    </form>
+  {% else %}
+    <p class="muted">Out of stock</p>
+  {% endif %}
+
+  <h2 style="margin-top:40px">Reviews</h2>
+  {% for review in reviews %}
+    <div class="card" style="margin-bottom:12px">
+      <p class="stars">{% for i in "12345" %}{% if forloop.counter <= review.rating %}★{% else %}☆{% endif %}{% endfor %}</p>
+      <p>{{ review.comment }}</p>
+      <p class="muted">{{ review.user.username }} · {{ review.created_at|date:"d M Y" }}</p>
+    </div>
+  {% empty %}
+    <p class="muted">No reviews yet.</p>
+  {% endfor %}
+
+  {% if user.is_authenticated and user_can_review %}
+    <h3>Leave a review</h3>
+    <form method="post" class="form-stack">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button type="submit">Submit review</button>
+    </form>
+  {% elif not user.is_authenticated %}
+    <p class="muted"><a href="{% url 'accounts:login' %}">Log in</a> to leave a review.</p>
+  {% endif %}
+{% endblock %}

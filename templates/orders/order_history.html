@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Your orders{% endblock %}
+{% block content %}
+  <h1>Your orders</h1>
+  {% if not orders %}
+    <p class="muted">You haven't placed any orders yet.</p>
+  {% else %}
+    <table>
+      <thead><tr><th>Order</th><th>Status</th><th>Total</th><th>Date</th><th></th></tr></thead>
+      <tbody>
+        {% for order in orders %}
+          <tr>
+            <td>#{{ order.id }}</td>
+            <td>{{ order.get_status_display }}</td>
+            <td>€{{ order.total_price }}</td>
+            <td>{{ order.created_at|date:"d M Y H:i" }}</td>
+            <td><a href="{% url 'orders:order_detail' order.id %}">View</a></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+{% endblock %}

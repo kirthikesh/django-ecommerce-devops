@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: django
+  namespace: ecommerce
+spec:
+  replicas: 2
+  selector:
+    matchLabels: {app: django}
+  template:
+    metadata:
+      labels: {app: django}
+    spec:
+      containers:
+        - name: django
+          image: ghcr.io/OWNER/django-ecommerce-devops:latest
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef: {name: ecommerce-config}
+            - secretRef: {name: ecommerce-secret}
+          readinessProbe:
+            httpGet: {path: /accounts/login/, port: 8000}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: {path: /accounts/login/, port: 8000}
+            initialDelaySeconds: 15
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: django
+  namespace: ecommerce
+spec:
+  selector: {app: django}
+  ports:
+    - port: 80
+      targetPort: 8000

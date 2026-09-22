@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Your profile{% endblock %}
+{% block content %}
+  <h1>Your profile</h1>
+  <form method="post" class="form-stack" style="max-width:420px">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" style="margin-top:16px">Save</button>
+  </form>
+{% endblock %}

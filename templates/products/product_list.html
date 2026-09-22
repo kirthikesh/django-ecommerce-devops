@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Shop{% endblock %}
+{% block content %}
+  <form class="filters" method="get">
+    <input type="text" name="q" placeholder="Search products..." value="{{ query }}">
+    <select name="category">
+      <option value="">All categories</option>
+      {% for c in categories %}
+        <option value="{{ c.slug }}" {% if c.slug == selected_category %}selected{% endif %}>{{ c.name }}</option>
+      {% endfor %}
+    </select>
+    <input type="number" step="0.01" name="min_price" placeholder="Min price" value="{{ request.GET.min_price }}">
+    <input type="number" step="0.01" name="max_price" placeholder="Max price" value="{{ request.GET.max_price }}">
+    <select name="sort">
+      <option value="newest" {% if sort == "newest" %}selected{% endif %}>Newest</option>
+      <option value="price_asc" {% if sort == "price_asc" %}selected{% endif %}>Price: low to high</option>
+      <option value="price_desc" {% if sort == "price_desc" %}selected{% endif %}>Price: high to low</option>
+    </select>
+    <button type="submit">Filter</button>
+  </form>
+
+  <div class="grid">
+    {% for product in products %}
+      <div class="card">
+        <h3><a href="{{ product.get_absolute_url }}">{{ product.name }}</a></h3>
+        <p class="muted">{{ product.category.name|default:"Uncategorized" }}</p>
+        <p class="price">€{{ product.price }}</p>
+        <p class="muted">{% if product.in_stock %}In stock{% else %}Out of stock{% endif %}</p>
+      </div>
+    {% empty %}
+      <p class="muted">No products found.</p>
+    {% endfor %}
+  </div>
+{% endblock %}
